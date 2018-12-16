@@ -122,7 +122,7 @@ namespace EHentaiInfoTelegramBot
             var regex = new Regex($@"\| {target.Replace("_", " ")} \| (?<translation>.+?) \|");
             var match = regex.Match(markdown);
             return match.Success
-                ? MarkdownPicReplaceRegex.Replace(match.Groups["translation"].Value, "")
+                ? MarkdownPicReplaceRegex.Replace(match.Groups["translation"].Value, "").Replace(@"\|", "|")
                 : target.Replace("_", " ");
         }
 

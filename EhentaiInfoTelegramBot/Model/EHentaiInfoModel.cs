@@ -38,7 +38,7 @@ namespace EHentaiInfoTelegramBot.Model
         {
             var sb = new StringBuilder();
 
-            if (Title != null) sb.AppendLine($"**{Title}**");
+            if (Title != null) sb.AppendLine($"**{MarkdownEscape(Title)}**");
 
             if (Tags != null)
                 foreach (var tag in Tags)
@@ -51,6 +51,11 @@ namespace EHentaiInfoTelegramBot.Model
             if (EXUrl != null) sb.AppendLine($"[EXH URL]({EXUrl})");
 
             return sb.ToString();
+        }
+
+        public string MarkdownEscape(string str)
+        {
+            return str.Replace("[", @"\[");
         }
 
         public void Dispose()
