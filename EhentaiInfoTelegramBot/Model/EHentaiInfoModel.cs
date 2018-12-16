@@ -12,8 +12,8 @@ namespace EHentaiInfoTelegramBot.Model
         //public string CoverUrl { get; set; }
         public MemoryStream Cover { get; set; }
         public string Id { get; set; }
-        public string EHUrl => string.IsNullOrEmpty(Id) ? null : $"https://e-hentai.org/g/{Id}";
-        public string EXUrl => string.IsNullOrEmpty(Id) ? null : $"https://exhentai.org/g/{Id}";
+        public string EHUrl => string.IsNullOrEmpty(Id) ? null : $"[E-H URL](https://e-hentai.org/g/{Id})";
+        public string EXUrl => string.IsNullOrEmpty(Id) ? null : $"[ExH URL](https://exhentai.org/g/{Id})";
 
         public override string ToString()
         {

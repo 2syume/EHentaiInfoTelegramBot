@@ -58,8 +58,13 @@ namespace EHentaiInfoTelegramBot
 
                         using (var info = await _eHentaiInfo.GetInfoAsync(EHentaiUrlRegex.Match(e.Message.Text).Value))
                         {
-                            await bot.SendPhotoAsync(e.Message.Chat, new InputMedia(info.Cover, "cover.jpg"),
-                                info.ToString(), disableNotification: true, replyToMessageId: e.Message.MessageId);
+                            await bot.SendPhotoAsync(
+                                e.Message.Chat,
+                                new InputMedia(info.Cover, "cover.jpg"),
+                                info.ToString(),
+                                disableNotification: true,
+                                replyToMessageId: e.Message.MessageId,
+                                parseMode: ParseMode.Markdown);
                         }
                     }
                     catch (Exception ex)
