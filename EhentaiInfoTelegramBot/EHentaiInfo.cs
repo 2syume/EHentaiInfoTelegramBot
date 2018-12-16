@@ -23,7 +23,6 @@ namespace EHentaiInfoTelegramBot
         private const string DatabaseUrl = "https://raw.githubusercontent.com/wiki/Mapaler/EhTagTranslator/database/";
         private readonly IConfiguration _configuration;
         private readonly ILogger<EHentaiInfo> _logger;
-        private readonly ICache _cache;
 
         private HttpClient HttpClient { get; }
         private Cache<HttpClient> CachedHttpClient { get; }
@@ -38,7 +37,6 @@ namespace EHentaiInfoTelegramBot
         {
             _configuration = configuration;
             _logger = logger;
-            _cache = cache;
 
             if (!CheckCookie()) return;
             var cookieContainer = new CookieContainer();
@@ -53,13 +51,13 @@ namespace EHentaiInfoTelegramBot
                 new Cookie("ipb_pass_hash", _configuration["ipb_pass_hash"], "/", "e-hentai.org"));
             var handler = new HttpClientHandler {CookieContainer = cookieContainer};
             HttpClient = new HttpClient(handler);
-            CachedHttpClient = new Cache<HttpClient>(HttpClient, _cache);
+            CachedHttpClient = new Cache<HttpClient>(HttpClient, cache);
 
             TitleRegex = new Regex(@"(?<=<h1 id=\""gj\"">).*?(?=</h1>)", RegexOptions.Compiled);
             EHentaiUrlRegex = new Regex(@"https?://e[x\-]hentai.org/g/(?<id>[\d\w]+?/[\d\w]+)", RegexOptions.Compiled);
             TagRowRegex = new Regex(@"<tr><td class=""tc"">(?<name>.+?):<\/td>(?<content>.+?)<\/tr>",
                 RegexOptions.Compiled);
-            TagRegex = new Regex(@"<div id=""[\w\d_]+?:(?<tag>.+?)""", RegexOptions.Compiled);
+            TagRegex = new Regex(@"<div id=""td_([\w\d]+:)?(?<tag>.+?)""", RegexOptions.Compiled);
             MarkdownPicReplaceRegex = new Regex(@"!\[.+?\]\(.+?\)", RegexOptions.Compiled);
             CoverRegex = new Regex(@"<div id=""gd1"">.*?url\((?<cover>.+?)\)", RegexOptions.Compiled);
         }
