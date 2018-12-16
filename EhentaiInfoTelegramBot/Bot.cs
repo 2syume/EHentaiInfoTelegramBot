@@ -61,7 +61,7 @@ namespace EHentaiInfoTelegramBot
                             await bot.SendPhotoAsync(
                                 e.Message.Chat,
                                 new InputMedia(info.Cover, "cover.jpg"),
-                                info.ToString(),
+                                info.ToMarkdown(),
                                 disableNotification: true,
                                 replyToMessageId: e.Message.MessageId,
                                 parseMode: ParseMode.Markdown);
