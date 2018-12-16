@@ -132,7 +132,10 @@ namespace EHentaiInfoTelegramBot
         {
             var coverUrl = CoverRegex.Match(html).Groups["cover"].Value;
             var ms = new MemoryStream();
-            await (await HttpClient.GetStreamAsync(coverUrl)).CopyToAsync(ms);
+            using (var webStream = await HttpClient.GetStreamAsync(coverUrl))
+            {
+                await webStream.CopyToAsync(ms);
+            }
             ms.Seek(0, SeekOrigin.Begin);
 
             return ms;
