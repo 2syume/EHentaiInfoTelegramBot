@@ -54,7 +54,7 @@ namespace EHentaiInfoTelegramBot
                     {
                         if (e.Message.Text == null || !EHentaiUrlRegex.IsMatch(e.Message.Text)) return;
                         await bot.SendChatActionAsync(e.Message.Chat.Id, ChatAction.Typing);
-                        _logger.LogInformation($"Receives: {e.Message.Text} from {e.Message.Chat.Id}");
+                        _logger.LogInformation($"Receives: {EHentaiUrlRegex.Match(e.Message.Text).Value} from {e.Message.Chat.Id}");
 
                         using (var info = await _eHentaiInfo.GetInfoAsync(EHentaiUrlRegex.Match(e.Message.Text).Value))
                         {
