@@ -4,20 +4,19 @@ using System.Text;
 
 namespace EHentaiInfoTelegramBot.Model
 {
-    public class EHentaiInfoModel : IHentaiInfoModel
+    public class NHentaiInfoModel : IHentaiInfoModel
     {
-        public EHentaiInfoModel()
+        public NHentaiInfoModel()
         {
             Tags = new Dictionary<string, IList<string>>();
         }
 
         public string Id { get; set; }
-        public string EHUrl => string.IsNullOrEmpty(Id) ? null : $"https://e-hentai.org/g/{Id}";
-        public string EXUrl => string.IsNullOrEmpty(Id) ? null : $"https://exhentai.org/g/{Id}";
+        public string Url => string.IsNullOrEmpty(Id) ? null : $"https://nhentai.net/g/{Id}";
         public string Title { get; set; }
         public IDictionary<string, IList<string>> Tags { get; }
         public MemoryStream Cover { get; set; }
-        public IDictionary<string, string> Urls => new Dictionary<string, string> {{"EHUrl", EHUrl}, {"EXUrl", EXUrl}};
+        public IDictionary<string, string> Urls => new Dictionary<string, string> {{"Url", Url}};
 
         public override string ToString()
         {
@@ -30,8 +29,7 @@ namespace EHentaiInfoTelegramBot.Model
                     if (!string.IsNullOrEmpty(tag.Key) && tag.Value != null)
                         sb.AppendLine($"{tag.Key}: {string.Join(", ", tag.Value)}");
 
-            sb.AppendLine(EHUrl ?? "");
-            sb.AppendLine(EXUrl ?? "");
+            sb.AppendLine(Url ?? "");
 
             return sb.ToString();
         }
@@ -47,8 +45,7 @@ namespace EHentaiInfoTelegramBot.Model
                     if (!string.IsNullOrEmpty(tag.Key) && tag.Value != null)
                         sb.AppendLine($"**{tag.Key}**: {string.Join(", ", tag.Value)}");
 
-            if (EHUrl != null) sb.AppendLine($"[E-H URL]({EHUrl})");
-            if (EXUrl != null) sb.AppendLine($"[EXH URL]({EXUrl})");
+            if (Url != null) sb.AppendLine($"[URL]({Url})");
 
             return sb.ToString();
         }

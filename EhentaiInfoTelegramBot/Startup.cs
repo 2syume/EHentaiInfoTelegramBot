@@ -1,6 +1,5 @@
 ﻿using FluentCache;
 using FluentCache.Microsoft.Extensions.Caching.Memory;
-using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -16,12 +15,12 @@ namespace EHentaiInfoTelegramBot
     {
         private IConfiguration _configuration;
 
-        private string[] Args { get; }
-
         public Startup(string[] args)
         {
             Args = args;
         }
+
+        private string[] Args { get; }
 
         public ServiceProvider ConfigureServices()
         {
@@ -40,8 +39,16 @@ namespace EHentaiInfoTelegramBot
                 })
                 .AddSingleton<ICache>(new FluentMemoryCache())
                 .AddSingleton(_configuration)
-                .AddSingleton<IEHentaiInfo>(services => new EHentaiInfo(services.GetService<IConfiguration>(),
-                    services.GetService<ILogger<EHentaiInfo>>(), services.GetService<ICache>()))
+                .AddSingleton<IHentaiInfo, EHentaiInfo>(services => new EHentaiInfo(
+                    services.GetService<IConfiguration>(),
+                    services.GetService<ILogger<EHentaiInfo>>(), services.GetService<ICache>(),
+                    services.GetService<ITagTranslationInfo>()))
+                .AddSingleton<IHentaiInfo, NHentaiInfo>(services => new NHentaiInfo(
+                    services.GetService<IConfiguration>(),
+                    services.GetService<ILogger<EHentaiInfo>>(), services.GetService<ICache>(),
+                    services.GetService<ITagTranslationInfo>()))
+                .AddSingleton<ITagTranslationInfo>(services => new TagTranslationInfo(services.GetService<ICache>(),
+                    services.GetService<ILogger<TagTranslationInfo>>()))
                 .AddTransient<Bot>()
                 .BuildServiceProvider();
         }
@@ -51,7 +58,7 @@ namespace EHentaiInfoTelegramBot
             var configBuilder = new ConfigurationBuilder();
             // ReSharper disable once StringLiteralTypo
             configBuilder.AddEnvironmentVariables("ehtg");
-            configBuilder.AddJsonFile("config.json", optional: true);
+            configBuilder.AddJsonFile("config.json", true);
             configBuilder.AddCommandLine(Args);
             _configuration = configBuilder.Build();
         }

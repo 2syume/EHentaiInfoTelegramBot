@@ -13,34 +13,21 @@ using Microsoft.Extensions.Logging;
 
 namespace EHentaiInfoTelegramBot
 {
-    public interface IEHentaiInfo
+    public class EHentaiInfo : IHentaiInfo
     {
-        Task<EHentaiInfoModel> GetInfoAsync(string url);
-    }
-
-    public class EHentaiInfo : IEHentaiInfo
-    {
-        private const string DatabaseUrl = "https://raw.githubusercontent.com/wiki/Mapaler/EhTagTranslator/database/";
         private readonly IConfiguration _configuration;
         private readonly ILogger<EHentaiInfo> _logger;
+        private readonly ITagTranslationInfo _tagTranslationInfo;
 
-        private HttpClient HttpClient { get; }
-        private Cache<HttpClient> CachedHttpClient { get; }
-        private Regex TitleRegex { get; }
-        private Regex EHentaiUrlRegex { get; }
-        private Regex TagRowRegex { get; }
-        private Regex TagRegex { get; }
-        private Regex MarkdownPicReplaceRegex { get; }
-        private Regex CoverRegex { get; }
-
-        public EHentaiInfo(IConfiguration configuration, ILogger<EHentaiInfo> logger, ICache cache)
+        public EHentaiInfo(IConfiguration configuration, ILogger<EHentaiInfo> logger, ICache cache,
+            ITagTranslationInfo tagTranslationInfo)
         {
             _configuration = configuration;
             _logger = logger;
+            _tagTranslationInfo = tagTranslationInfo;
 
             if (!CheckCookie()) return;
             var cookieContainer = new CookieContainer();
-            var cookieCollection = new CookieCollection();
             cookieContainer.Add(new Uri("https://exhentai.org"),
                 new Cookie("ipb_member_id", _configuration["ipb_member_id"], "/", "exhentai.org"));
             cookieContainer.Add(new Uri("https://exhentai.org"),
@@ -52,14 +39,37 @@ namespace EHentaiInfoTelegramBot
             var handler = new HttpClientHandler {CookieContainer = cookieContainer};
             HttpClient = new HttpClient(handler);
             CachedHttpClient = new Cache<HttpClient>(HttpClient, cache);
-
             TitleRegex = new Regex(@"(?<=<h1 id=\""gj\"">).*?(?=</h1>)", RegexOptions.Compiled);
-            EHentaiUrlRegex = new Regex(@"https?://e[x\-]hentai.org/g/(?<id>[\d\w]+?/[\d\w]+)", RegexOptions.Compiled);
             TagRowRegex = new Regex(@"<tr><td class=""tc"">(?<name>.+?):<\/td>(?<content>.+?)<\/tr>",
                 RegexOptions.Compiled);
             TagRegex = new Regex(@"<div id=""td_([\w\d]+:)?(?<tag>.+?)""", RegexOptions.Compiled);
-            MarkdownPicReplaceRegex = new Regex(@"!\[.+?\]\(.+?\)", RegexOptions.Compiled);
             CoverRegex = new Regex(@"<div id=""gd1"">.*?url\((?<cover>.+?)\)", RegexOptions.Compiled);
+            UrlRegex = new Regex(@"https?://e[x\-]hentai.org/g/(?<id>[\d\w]+?/[\d\w]+)", RegexOptions.Compiled);
+        }
+
+        private HttpClient HttpClient { get; }
+        private Cache<HttpClient> CachedHttpClient { get; }
+        private Regex TitleRegex { get; }
+        private Regex TagRowRegex { get; }
+        private Regex TagRegex { get; }
+        private Regex CoverRegex { get; }
+        public Regex UrlRegex { get; }
+
+        public async Task<IHentaiInfoModel> GetInfoAsync(string url)
+        {
+            var html = await CachedHttpClient.Method(t => t.GetStringAsync(url))
+                .ExpireAfter(TimeSpan.FromDays(1))
+                .GetValueAsync();
+
+            var model = new EHentaiInfoModel
+            {
+                Title = TitleRegex.Match(html).Value,
+                Id = UrlRegex.Match(url).Groups["id"].Value,
+                Cover = await GetCoverAsync(html)
+            };
+            foreach (var pair in await ExtractTagsAsync(html)) model.Tags.Add(pair);
+
+            return model;
         }
 
         private bool CheckCookie()
@@ -67,25 +77,12 @@ namespace EHentaiInfoTelegramBot
             if (string.IsNullOrEmpty(_configuration["ipb_member_id"]) ||
                 string.IsNullOrEmpty(_configuration["ipb_pass_hash"]))
             {
-                _logger.LogCritical("Cannot find the ehentai cookies. Please put your ehentai cookies in the json file.");
+                _logger.LogCritical(
+                    "Cannot find the ehentai cookies. Please put your ehentai cookies in the json file.");
                 return false;
             }
 
             return true;
-        }
-
-        public async Task<EHentaiInfoModel> GetInfoAsync(string url)
-        {
-            var html = await CachedHttpClient.Method(t => t.GetStringAsync(url))
-                .ExpireAfter(TimeSpan.FromDays(1))
-                .GetValueAsync();
-            return new EHentaiInfoModel
-            {
-                Title = TitleRegex.Match(html).Value,
-                Id = EHentaiUrlRegex.Match(url).Groups["id"].Value,
-                Tags = await ExtractTagsAsync(html),
-                Cover = await GetCoverAsync(html)
-            };
         }
 
         private async Task<IDictionary<string, IList<string>>> ExtractTagsAsync(string html)
@@ -94,36 +91,13 @@ namespace EHentaiInfoTelegramBot
             foreach (Match match in TagRowRegex.Matches(html))
             {
                 var name = match.Groups["name"].Value;
-                var tag = TagRegex.Matches(match.Groups["content"].Value)
-                    .Select(t => GetTranslationAsync(name, t.Groups["tag"].Value).Result).ToList();
-                tags.Add(await GetTranslationAsync(name), tag);
+                var tag = (await Task.WhenAll(TagRegex.Matches(match.Groups["content"].Value)
+                        .Select(async t => await _tagTranslationInfo.GetTranslationAsync(name, t.Groups["tag"].Value))))
+                    .Select(t => t.Item2).ToList();
+                tags.Add((await _tagTranslationInfo.GetTranslationAsync(name)).Item2, tag);
             }
+
             return tags;
-        }
-
-        private async Task<string> GetTranslationAsync(string row, string tag = null)
-        {
-            string url, target;
-            if (tag == null)
-            {
-                url = $"{DatabaseUrl}rows.md";
-                target = row;
-            }
-            else
-            {
-                url = $"{DatabaseUrl}{row}.md";
-                target = tag;
-            }
-
-            var markdown = await CachedHttpClient.Method(t => t.GetStringAsync(url))
-                .ExpireAfter(TimeSpan.FromDays(1))
-                .GetValueAsync();
-
-            var regex = new Regex($@"\| {target.Replace("_", " ")} \| (?<translation>.+?) \|");
-            var match = regex.Match(markdown);
-            return match.Success
-                ? MarkdownPicReplaceRegex.Replace(match.Groups["translation"].Value, "").Replace(@"\|", "|")
-                : target.Replace("_", " ");
         }
 
         private async Task<MemoryStream> GetCoverAsync(string html)
@@ -134,6 +108,7 @@ namespace EHentaiInfoTelegramBot
             {
                 await webStream.CopyToAsync(ms);
             }
+
             ms.Seek(0, SeekOrigin.Begin);
 
             return ms;

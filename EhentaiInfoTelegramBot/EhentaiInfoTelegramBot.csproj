@@ -8,6 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="AngleSharp" Version="0.12.1" />
     <PackageReference Include="FluentCache" Version="4.0.0.2" />
     <PackageReference Include="FluentCache.Microsoft.Extensions.Caching.Memory" Version="4.0.0.2" />
     <PackageReference Include="Microsoft.Extensions.Configuration" Version="2.2.0" />

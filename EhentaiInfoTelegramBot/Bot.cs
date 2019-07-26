@@ -1,8 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Runtime.CompilerServices;
-using System.Text;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -15,17 +12,14 @@ namespace EHentaiInfoTelegramBot
     public class Bot
     {
         private readonly IConfiguration _configuration;
+        private readonly IEnumerable<IHentaiInfo> _hentaiInfos;
         private readonly ILogger<Bot> _logger;
-        private readonly IEHentaiInfo _eHentaiInfo;
-        private Regex EHentaiUrlRegex { get; }
 
-        public Bot(IConfiguration configuration, ILogger<Bot> logger, IEHentaiInfo eHentaiInfo)
+        public Bot(IConfiguration configuration, ILogger<Bot> logger, IEnumerable<IHentaiInfo> hentaiInfos)
         {
             _configuration = configuration;
             _logger = logger;
-            _eHentaiInfo = eHentaiInfo;
-
-            EHentaiUrlRegex = new Regex(@"https?://e[x\-]hentai.org/g/(?<id>[\d\w]+?/[\d\w]+)", RegexOptions.Compiled);
+            _hentaiInfos = hentaiInfos;
         }
 
         private bool CheckSecret()
@@ -52,19 +46,25 @@ namespace EHentaiInfoTelegramBot
                 {
                     try
                     {
-                        if (e.Message.Text == null || !EHentaiUrlRegex.IsMatch(e.Message.Text)) return;
-                        await bot.SendChatActionAsync(e.Message.Chat.Id, ChatAction.Typing);
-                        _logger.LogInformation($"Receives: {EHentaiUrlRegex.Match(e.Message.Text).Value} from {e.Message.Chat.Id}");
-
-                        using (var info = await _eHentaiInfo.GetInfoAsync(EHentaiUrlRegex.Match(e.Message.Text).Value))
+                        if (e.Message.Text == null) return;
+                        foreach (var hentaiInfo in _hentaiInfos)
                         {
-                            await bot.SendPhotoAsync(
-                                e.Message.Chat,
-                                new InputMedia(info.Cover, "cover.jpg"),
-                                info.ToMarkdown(),
-                                disableNotification: true,
-                                replyToMessageId: e.Message.MessageId,
-                                parseMode: ParseMode.Markdown);
+                            if (!hentaiInfo.UrlRegex.IsMatch(e.Message.Text)) continue;
+                            await bot.SendChatActionAsync(e.Message.Chat.Id, ChatAction.Typing);
+                            _logger.LogInformation(
+                                $"Receives: {hentaiInfo.UrlRegex.Match(e.Message.Text).Value} from {e.Message.Chat.Id}");
+
+                            using (var info =
+                                await hentaiInfo.GetInfoAsync(hentaiInfo.UrlRegex.Match(e.Message.Text).Value))
+                            {
+                                await bot.SendPhotoAsync(
+                                    e.Message.Chat,
+                                    new InputMedia(info.Cover, "cover.jpg"),
+                                    info.ToMarkdown(),
+                                    disableNotification: true,
+                                    replyToMessageId: e.Message.MessageId,
+                                    parseMode: ParseMode.Markdown);
+                            }
                         }
                     }
                     catch (Exception ex)

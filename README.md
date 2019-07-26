@@ -1,6 +1,6 @@
 # EHentaiInfoTelegramBot
 
-A telegram bot that retrieves infos and covers from EHentai urls.
+A telegram bot that retrieves infos and covers from EHentai/NHentai urls.
 
 ## Usage
 
