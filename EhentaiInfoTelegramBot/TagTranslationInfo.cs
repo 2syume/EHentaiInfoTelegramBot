@@ -14,7 +14,7 @@ namespace EHentaiInfoTelegramBot
 
     public class TagTranslationInfo : ITagTranslationInfo
     {
-        private const string DatabaseUrl = "https://raw.githubusercontent.com/wiki/Mapaler/EhTagTranslator/database/";
+        private const string DatabaseUrl = "https://raw.githubusercontent.com/EhTagTranslation/Database/master/database/";
         private readonly ILogger<TagTranslationInfo> _logger;
 
         public TagTranslationInfo(ICache cache, ILogger<TagTranslationInfo> logger)
