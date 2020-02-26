@@ -73,7 +73,10 @@ namespace EHentaiInfoTelegramBot
                     }
                 };
 
-                bot.StartReceiving(new[] {UpdateType.Message, UpdateType.EditedMessage});
+                bot.StartReceiving(new[]
+                {
+                    UpdateType.Message, UpdateType.EditedMessage, UpdateType.ChannelPost, UpdateType.EditedChannelPost
+                });
             }
             catch (Exception e)
             {
