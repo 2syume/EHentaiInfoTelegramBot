@@ -45,13 +45,16 @@ namespace EHentaiInfoTelegramBot
             var html = await CachedHttpClient.Method(t => t.GetStringAsync(url))
                 .ExpireAfter(TimeSpan.FromDays(1))
                 .GetValueAsync();
+            var htmlParser = BrowsingContext.New();
+            var document = await htmlParser.OpenAsync(req => req.Content(html));
 
             var model = new NHentaiInfoModel
             {
-                Title = TitleRegex.Match(html).Value,
+                Title = string.Join("", document.QuerySelector("h2.title").Children.Select(t => t.Text())),
                 Id = UrlRegex.Match(url).Groups["id"].Value,
                 Cover = await GetCoverAsync(html)
             };
+
             foreach (var pair in await ExtractTagsAsync(html)) model.Tags.Add(pair);
 
             return model;
@@ -60,17 +63,18 @@ namespace EHentaiInfoTelegramBot
         private async Task<IDictionary<string, IList<string>>> ExtractTagsAsync(string html)
         {
             var tagRowCleanupRegex = new Regex(@".*?(?=:\n)", RegexOptions.Compiled);
-            var tagCleanupRegex = new Regex(@".*(?= \(.*\))", RegexOptions.Compiled);
             var htmlParser = BrowsingContext.New();
             var document = await htmlParser.OpenAsync(req => req.Content(html));
             var tags = (await Task.WhenAll(document.QuerySelectorAll<IElement>("#tags div:not(.hidden)")
+                    .Where(t=>!t.Text().Contains("Pages:") && !t.Text().Contains("Uploaded:"))
                     .Select(async t => new
                     {
                         key = await GetTranslationAsync(tagRowCleanupRegex.Match(t.Text()).Value.Trim()),
                         value = (await Task.WhenAll((await htmlParser.OpenAsync(req => req.Content(t.OuterHtml)))
-                                .QuerySelectorAll<IElement>("a").Select(async d =>
-                                    await GetTranslationAsync(tagRowCleanupRegex.Match(t.Text()).Value.Trim(),
-                                        tagCleanupRegex.Match(d.Text()).Value.Trim()))))
+                                .QuerySelectorAll<IElement>("a span.name")
+                                .Select(async d => await GetTranslationAsync(
+                                    tagRowCleanupRegex.Match(t.Text()).Value.Trim(),
+                                    d.Text().Trim()))))
                             .ToList() as IList<string>
                     })))
                 .ToDictionary(t => t.key, t => t.value);
@@ -95,6 +99,8 @@ namespace EHentaiInfoTelegramBot
                         return "团队";
                     case "Languages":
                         return "语言";
+                    case "Categories":
+                        return "分类";
                 }
             else
                 switch (row)
