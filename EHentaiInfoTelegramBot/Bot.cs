@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -30,7 +31,6 @@ namespace EHentaiInfoTelegramBot
                 _logger.LogCritical("Cannot find the bot secret. Please put your bot secret in the json file.");
                 return false;
             }
-
             return true;
         }
 
@@ -44,18 +44,25 @@ namespace EHentaiInfoTelegramBot
                 var result = await bot.GetMeAsync();
                 _logger.LogInformation($"Running as {result.Username} with id {result.Id}");
 
-                var updateReceiver = new QueuedUpdateReceiver(bot);
-                updateReceiver.StartReceiving();
+                var updateReceiver = new QueuedUpdateReceiver(bot, new ReceiverOptions
+                {
+                    AllowedUpdates = new[]
+                    {
+                        UpdateType.Message
+                    }
+                });
 
-                await foreach (var update in updateReceiver.YieldUpdatesAsync())
+                var cts = new CancellationTokenSource();
+
+                await foreach (var update in updateReceiver.WithCancellation(cts.Token))
                 {
                     try
                     {
-                        if (update.Message.Text == null) return;
+                        if (update.Message?.Text == null) return;
                         foreach (var hentaiInfo in _hentaiInfos)
                         {
                             if (!hentaiInfo.UrlRegex.IsMatch(update.Message.Text)) continue;
-                            await bot.SendChatActionAsync(update.Message.Chat.Id, ChatAction.Typing);
+                            await bot.SendChatActionAsync(update.Message.Chat.Id, ChatAction.Typing, cts.Token);
                             _logger.LogInformation(
                                 $"Receives: {hentaiInfo.UrlRegex.Match(update.Message.Text).Value} from {update.Message.Chat.Id}");
 
@@ -67,7 +74,8 @@ namespace EHentaiInfoTelegramBot
                                 info.ToMarkdown(),
                                 disableNotification: true,
                                 replyToMessageId: update.Message.MessageId,
-                                parseMode: ParseMode.Markdown);
+                                parseMode: ParseMode.Markdown,
+                                cancellationToken: cts.Token);
                         }
                     }
                     catch (Exception ex)
