@@ -31,6 +31,7 @@ namespace EHentaiInfoTelegramBot
                 _logger.LogCritical("Cannot find the bot secret. Please put your bot secret in the json file.");
                 return false;
             }
+
             return true;
         }
 
@@ -44,45 +45,40 @@ namespace EHentaiInfoTelegramBot
                 var result = await bot.GetMeAsync();
                 _logger.LogInformation($"Running as {result.Username} with id {result.Id}");
 
-                var updateReceiver = new QueuedUpdateReceiver(bot, new ReceiverOptions
+                var receiveOptions = new ReceiverOptions
                 {
                     AllowedUpdates = new[]
                     {
                         UpdateType.Message
                     }
-                });
+                };
 
                 var cts = new CancellationTokenSource();
 
-                await foreach (var update in updateReceiver.WithCancellation(cts.Token))
-                {
-                    try
+                bot.StartReceiving(async (botClient, update, ctsToken) =>
                     {
                         if (update.Message?.Text == null) return;
                         foreach (var hentaiInfo in _hentaiInfos)
                         {
                             if (!hentaiInfo.UrlRegex.IsMatch(update.Message.Text)) continue;
-                            await bot.SendChatActionAsync(update.Message.Chat.Id, ChatAction.Typing, cts.Token);
+                            await botClient.SendChatActionAsync(update.Message.Chat.Id, ChatAction.Typing, ctsToken);
                             _logger.LogInformation(
                                 $"Receives: {hentaiInfo.UrlRegex.Match(update.Message.Text).Value} from {update.Message.Chat.Id}");
 
                             using var info =
                                 await hentaiInfo.GetInfoAsync(hentaiInfo.UrlRegex.Match(update.Message.Text).Value);
-                            await bot.SendPhotoAsync(
+                            await botClient.SendPhotoAsync(
                                 update.Message.Chat,
                                 new InputMedia(info.Cover, "cover.jpg"),
                                 info.ToMarkdown(),
                                 disableNotification: true,
                                 replyToMessageId: update.Message.MessageId,
                                 parseMode: ParseMode.Markdown,
-                                cancellationToken: cts.Token);
+                                cancellationToken: ctsToken);
                         }
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError(ex, ex.ToString());
-                    }
-                }
+                    },
+                    (_, ex, _) => { _logger.LogError(ex, ex.ToString()); }, receiveOptions, cts.Token);
+
             }
             catch (Exception e)
             {
