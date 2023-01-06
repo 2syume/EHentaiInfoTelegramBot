@@ -2,23 +2,23 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net5.0</TargetFramework>
+    <TargetFramework>net6.0</TargetFramework>
     <AssemblyName>EHentaiInfoTelegramBot</AssemblyName>
     <RootNamespace>EHentaiInfoTelegramBot</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="AngleSharp" Version="0.16.0" />
+    <PackageReference Include="AngleSharp" Version="0.17.1" />
     <PackageReference Include="FluentCache" Version="4.0.0.2" />
     <PackageReference Include="FluentCache.Microsoft.Extensions.Caching.Memory" Version="4.0.0.2" />
-    <PackageReference Include="Microsoft.Extensions.Configuration" Version="5.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.CommandLine" Version="5.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="5.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="5.0.0" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="5.0.2" />
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
-    <PackageReference Include="NLog.Extensions.Logging" Version="1.7.3" />
-    <PackageReference Include="Telegram.Bot" Version="17.0.0-alpha.3" />
+    <PackageReference Include="Microsoft.Extensions.Configuration" Version="7.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.CommandLine" Version="7.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="7.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="7.0.0" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="7.0.0" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.2" />
+    <PackageReference Include="NLog.Extensions.Logging" Version="5.2.1" />
+    <PackageReference Include="Telegram.Bot" Version="18.0.0" />
     <PackageReference Include="Telegram.Bot.Extensions.Polling" Version="1.0.0-alpha.1" />
   </ItemGroup>
 
