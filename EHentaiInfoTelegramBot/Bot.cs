@@ -30,16 +30,14 @@ public class Bot(IConfiguration configuration, ILogger<Bot> logger, IEnumerable<
 
         try
         {
-            var bot = new TelegramBotClient(configuration["secret"]);
-            var result = await bot.GetMeAsync();
+            var bot = new TelegramBotClient(configuration["secret"] ??
+                                            throw new InvalidOperationException("No bot secret"));
+            var result = await bot.GetMe();
             logger.LogInformation($"Running as {result.Username} with id {result.Id}");
 
             var receiveOptions = new ReceiverOptions
             {
-                AllowedUpdates = new[]
-                {
-                    UpdateType.Message
-                }
+                AllowedUpdates = [UpdateType.Message]
             };
 
             var cts = new CancellationTokenSource();
@@ -50,19 +48,22 @@ public class Bot(IConfiguration configuration, ILogger<Bot> logger, IEnumerable<
                     foreach (var hentaiInfo in hentaiInfos)
                     {
                         if (!hentaiInfo.UrlRegex.IsMatch(update.Message.Text)) continue;
-                        await botClient.SendChatActionAsync(update.Message.Chat.Id, ChatAction.Typing,
+                        await botClient.SendChatAction(update.Message.Chat.Id, ChatAction.Typing,
                             cancellationToken: ctsToken);
                         logger.LogInformation(
                             $"Receives: {hentaiInfo.UrlRegex.Match(update.Message.Text).Value} from {update.Message.Chat.Id}");
 
                         using var info =
                             await hentaiInfo.GetInfoAsync(hentaiInfo.UrlRegex.Match(update.Message.Text).Value);
-                        await botClient.SendPhotoAsync(
+                        await botClient.SendPhoto(
                             update.Message.Chat,
                             new InputFileStream(info.Cover, "cover.jpg"),
-                            caption: info.ToMarkdown(),
+                            info.ToMarkdown(),
                             disableNotification: true,
-                            replyToMessageId: update.Message.MessageId,
+                            replyParameters: new ReplyParameters
+                            {
+                                MessageId = update.Message.MessageId
+                            },
                             parseMode: ParseMode.Markdown,
                             cancellationToken: ctsToken);
                     }
