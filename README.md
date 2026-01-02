@@ -4,7 +4,7 @@ A telegram bot that retrieves infos and covers from EHentai/NHentai urls.
 
 ## Usage
 
-Create a json file called ```config.json``` with the following content
+Create a json file called `config.json` with the following content
 
 ```json
 {
@@ -15,6 +15,8 @@ Create a json file called ```config.json``` with the following content
 ```
 
 Then, run the program using the dotnet core runtime.
+
+This project targets .NET 10, so build/run it with the .NET 10 SDK (or newer).
 
 ## Special thanks
 
